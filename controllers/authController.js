@@ -15,7 +15,7 @@ const {
 
 var admin = require("firebase-admin");
 
-var serviceAccount = require("C:/Users/Redaa/Documents/Freelance/BetweenUs/betweenus-firebase-adminsdk.json");
+var serviceAccount = require("../betweenus-firebase-adminsdk.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
