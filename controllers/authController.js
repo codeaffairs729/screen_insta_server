@@ -57,7 +57,7 @@ module.exports.loginAuthentication = async (req, res, next) => {
         console.log("User email is not verified");
       }
       const { uid, email } = response;
-      const username = currentUser.displayName;
+      const username = uid;
       let user = await User.findOne({ uid: uid });
       if (user) {
         return res.send(user);
