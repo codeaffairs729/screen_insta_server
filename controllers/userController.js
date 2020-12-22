@@ -9,6 +9,7 @@ const ObjectId = require("mongoose").Types.ObjectId;
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const crypto = require("crypto");
+const constants = require("./../constants");
 
 const {
   validateEmail,
@@ -22,6 +23,8 @@ module.exports.retrieveUser = async (req, res, next) => {
   const { username } = req.params;
   const requestingUser = res.locals.user;
   try {
+    console.log("finding user " + username);
+
     const user = await User.findOne(
       { username },
       "username fullName avatar bio bookmarks fullName _id website"
@@ -500,9 +503,9 @@ module.exports.changeAvatar = async (req, res, next) => {
   }
 
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: constants.CLOUDINARY_CLOUD_NAME,
+    api_key: constants.CLOUDINARY_API_KEY,
+    api_secret: constants.CLOUDINARY_API_SECRET,
   });
 
   try {
@@ -529,6 +532,40 @@ module.exports.changeAvatar = async (req, res, next) => {
   }
 };
 
+module.exports.changeCoverPicture = async (req, res, next) => {
+  const user = res.locals.user;
+
+  if (!req.file) {
+    return res
+      .status(400)
+      .send({ error: "Please provide the image to upload." });
+  }
+
+  cloudinary.config({
+    cloud_name: constants.CLOUDINARY_CLOUD_NAME,
+    api_key: constants.CLOUDINARY_API_KEY,
+    api_secret: constants.CLOUDINARY_API_SECRET,
+  });
+
+  try {
+    const response = await cloudinary.uploader.upload(req.file.path, {});
+    fs.unlinkSync(req.file.path);
+
+    const coverPictureUpdate = await User.updateOne(
+      { _id: user._id },
+      { coverPicture: response.secure_url }
+    );
+
+    if (!coverPictureUpdate.nModified) {
+      throw new Error("Could not update Cover Picture.");
+    }
+
+    return res.send({ coverPicture: response.secure_url });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports.removeAvatar = async (req, res, next) => {
   const user = res.locals.user;
 
@@ -548,7 +585,10 @@ module.exports.removeAvatar = async (req, res, next) => {
 
 module.exports.updateProfile = async (req, res, next) => {
   const user = res.locals.user;
-  const { fullName, username, website, bio, email } = req.body;
+  console.log("updating current user with values: ");
+
+  console.log(req.body);
+  const { fullName, username, website, bio, email, acceptedTerms } = req.body;
   let confirmationToken = undefined;
   let updatedFields = {};
   try {
@@ -614,6 +654,9 @@ module.exports.updateProfile = async (req, res, next) => {
         userDocument.confirmed = false;
         updatedFields = { ...updatedFields, email, confirmed: false };
       }
+    }
+    if (acceptedTerms === true) {
+      userDocument.acceptedTerms = true;
     }
     const updatedUser = await userDocument.save();
     res.send(updatedFields);

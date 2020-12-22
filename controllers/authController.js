@@ -25,9 +25,7 @@ admin.initializeApp({
 module.exports.verifyJwt = (token) => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log("verifying user from firebase");
       const user = await admin.auth().verifyIdToken(token);
-      console.log(user);
       const provider = user.firebase.sign_in_provider;
       resolve(user);
     } catch (err) {
@@ -41,26 +39,12 @@ module.exports.requireAuth = async (req, res, next) => {
   if (!authorization) return res.status(401).send({ error: "Not authorized." });
   try {
     const user = await this.verifyJwt(authorization);
-    // Allow other middlewares to access the authenticated user details.
-    res.locals.user = user;
+    const connectedUser = await User.findOne({ uid: user.uid });
+    res.locals.user = connectedUser;
     return next();
   } catch (err) {
     return res.status(401).send({ error: err });
   }
-};
-
-module.exports.optionalAuth = async (req, res, next) => {
-  const { authorization } = req.headers;
-  if (authorization) {
-    try {
-      const user = await this.verifyJwt(authorization);
-      // Allow other middlewares to access the authenticated user details.
-      res.locals.user = user;
-    } catch (err) {
-      return res.status(401).send({ error: err });
-    }
-  }
-  return next();
 };
 
 module.exports.loginAuthentication = async (req, res, next) => {
@@ -74,11 +58,7 @@ module.exports.loginAuthentication = async (req, res, next) => {
       }
       const { uid, email } = response;
       const username = currentUser.displayName;
-      console.log("User authenticated: " + uid + " : " + email);
-      let user = await User.findOne(
-        { uid: uid },
-        "email username avatar bookmarks bio fullName confirmed website"
-      );
+      let user = await User.findOne({ uid: uid });
       if (user) {
         return res.send(user);
       } else {
@@ -86,8 +66,6 @@ module.exports.loginAuthentication = async (req, res, next) => {
           { $or: [{ email: email }, { username: username }] },
           "email uid username"
         );
-        console.log("finding user by email result: ");
-        console.log(user);
         if (user) {
           return res
             .status(400)
@@ -105,33 +83,5 @@ module.exports.loginAuthentication = async (req, res, next) => {
     }
   } else {
     return res.status(401).send("Unauthorized");
-  }
-};
-
-module.exports.changePassword = async (req, res, next) => {
-  const { oldPassword, newPassword } = req.body;
-  const user = res.locals.user;
-  let currentPassword = undefined;
-
-  try {
-    const userDocument = await User.findById(user._id);
-    currentPassword = userDocument.password;
-
-    const result = await bcrypt.compare(oldPassword, currentPassword);
-    if (!result) {
-      return res.status("401").send({
-        error: "Your old password was entered incorrectly, please try again.",
-      });
-    }
-
-    const newPasswordError = validatePassword(newPassword);
-    if (newPasswordError)
-      return res.status(400).send({ error: newPasswordError });
-
-    userDocument.password = newPassword;
-    await userDocument.save();
-    return res.send();
-  } catch (err) {
-    return next(err);
   }
 };

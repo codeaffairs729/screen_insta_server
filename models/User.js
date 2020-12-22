@@ -6,6 +6,11 @@ const Schema = mongoose.Schema;
 const RequestError = require("../errorTypes/RequestError");
 
 const UserSchema = new Schema({
+  fullName: {
+    type: String,
+    required: false,
+    default: null,
+  },
   email: {
     type: String,
     unique: true,
@@ -24,6 +29,7 @@ const UserSchema = new Schema({
     minlength: 6,
   },
   avatar: String,
+  coverPicture: String,
   bio: {
     type: String,
     maxlength: 130,
@@ -51,6 +57,26 @@ const UserSchema = new Schema({
   uid: {
     type: String,
     default: null,
+  },
+  coverPicture: {
+    type: String,
+    default: null,
+  },
+  isCreator: {
+    type: Boolean,
+    default: false,
+  },
+  followPrice: {
+    type: Number,
+    default: null,
+  },
+  signUpProvider: {
+    type: String,
+    default: null,
+  },
+  acceptedTerms: {
+    type: Boolean,
+    default: false,
   },
 });
 
