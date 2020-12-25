@@ -27,7 +27,7 @@ module.exports.retrieveUser = async (req, res, next) => {
 
     const user = await User.findOne(
       { username },
-      "username fullName avatar bio bookmarks fullName _id website"
+      "username fullName avatar bio bookmarks fullName _id website coverPicture"
     );
     if (!user) {
       return res

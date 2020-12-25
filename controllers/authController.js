@@ -27,6 +27,7 @@ module.exports.verifyJwt = (token) => {
     try {
       const user = await admin.auth().verifyIdToken(token);
       const provider = user.firebase.sign_in_provider;
+      console.log("sign in provider is : " + provider);
       resolve(user);
     } catch (err) {
       return reject("Not authorized.");
@@ -53,11 +54,9 @@ module.exports.loginAuthentication = async (req, res, next) => {
     try {
       const response = await admin.auth().verifyIdToken(authorization);
       const currentUser = await admin.auth().getUser(response.uid);
-      if (!response.email_verified) {
-        console.log("User email is not verified");
-      }
+      const provider = response.firebase.sign_in_provider;
       const { uid, email } = response;
-      const username = uid;
+      let username = uid;
       let user = await User.findOne({ uid: uid });
       if (user) {
         return res.send(user);
@@ -70,6 +69,11 @@ module.exports.loginAuthentication = async (req, res, next) => {
           return res
             .status(400)
             .send({ error: "Email/username already exists" });
+        }
+        if (provider === "password") {
+          username = currentUser.displayName
+            ? currentUser.displayName
+            : username;
         }
         user = new User({ uid, email, username });
         user = await user.save();
