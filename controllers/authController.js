@@ -22,24 +22,36 @@ admin.initializeApp({
   databaseURL: "https://betweenus-3296e.firebaseio.com",
 });
 
-module.exports.verifyJwt = (token) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const user = await admin.auth().verifyIdToken(token);
-      const provider = user.firebase.sign_in_provider;
-      console.log("sign in provider is : " + provider);
-      resolve(user);
-    } catch (err) {
-      return reject("Not authorized.");
-    }
-  });
-};
-
 module.exports.requireAuth = async (req, res, next) => {
   const { authorization } = req.headers;
   if (!authorization) return res.status(401).send({ error: "Not authorized." });
   try {
-    const user = await this.verifyJwt(authorization);
+    const user = await admin.auth().verifyIdToken(authorization);
+
+    if (user.firebase.sign_in_provider === "password") {
+      const tempUser = await admin
+        .auth()
+        .getUserByEmail("reda.sllak@gmail.com");
+      console.log("email verified  " + tempUser.emailVerified);
+      if (!tempUser.emailVerified) {
+        return res
+          .status(401)
+          .send({ error: "Please verify your email address" });
+      }
+    }
+    const connectedUser = await User.findOne({ uid: user.uid });
+    res.locals.user = connectedUser;
+    return next();
+  } catch (err) {
+    return res.status(401).send({ error: err });
+  }
+};
+
+module.exports.requireAuthNoMailVerification = async (req, res, next) => {
+  const { authorization } = req.headers;
+  if (!authorization) return res.status(401).send({ error: "Not authorized." });
+  try {
+    const user = await admin.auth().verifyIdToken(token);
     const connectedUser = await User.findOne({ uid: user.uid });
     res.locals.user = connectedUser;
     return next();

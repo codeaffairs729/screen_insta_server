@@ -594,7 +594,7 @@ module.exports.updateProfile = async (req, res, next) => {
   try {
     const userDocument = await User.findOne({ _id: user._id });
 
-    if (fullName) {
+    if (fullName !== undefined) {
       const fullNameError = validateFullName(fullName);
       if (fullNameError) return res.status(400).send({ error: fullNameError });
       userDocument.fullName = fullName;
@@ -616,10 +616,14 @@ module.exports.updateProfile = async (req, res, next) => {
       }
     }
 
-    if (website) {
+    if (website !== undefined) {
       const websiteError = validateWebsite(website);
       if (websiteError) return res.status(400).send({ error: websiteError });
-      if (!website.includes("http://") && !website.includes("https://")) {
+      if (
+        !website.includes("http://") &&
+        !website.includes("https://") &&
+        website !== ""
+      ) {
         userDocument.website = "https://" + website;
         updatedFields.website = "https://" + website;
       } else {
@@ -628,7 +632,7 @@ module.exports.updateProfile = async (req, res, next) => {
       }
     }
 
-    if (bio) {
+    if (bio !== undefined) {
       const bioError = validateBio(bio);
       if (bioError) return res.status(400).send({ error: bioError });
       userDocument.bio = bio;

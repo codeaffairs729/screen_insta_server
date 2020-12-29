@@ -32,7 +32,7 @@ userRouter.put(
   requireAuth,
   multer({
     dest: "temp/",
-    limits: { fieldSize: 8 * 1024 * 1024, fileSize: 1000000 },
+    limits: { fieldSize: 16 * 1024 * 1024, fileSize: 10000000 },
   }).single("image"),
   changeAvatar
 );
@@ -42,7 +42,7 @@ userRouter.put(
   requireAuth,
   multer({
     dest: "temp/",
-    limits: { fileSize: 12 * 1024 * 1021, fileSize: 1000000 },
+    limits: { fileSize: 24 * 1024 * 1021, fileSize: 10000000 },
   }).single("image"),
   changeCoverPicture
 );
