@@ -29,9 +29,7 @@ module.exports.requireAuth = async (req, res, next) => {
     const user = await admin.auth().verifyIdToken(authorization);
 
     if (user.firebase.sign_in_provider === "password") {
-      const tempUser = await admin
-        .auth()
-        .getUserByEmail("reda.sllak@gmail.com");
+      const tempUser = await admin.auth().getUserByEmail(user.email);
       console.log("email verified  " + tempUser.emailVerified);
       if (!tempUser.emailVerified) {
         return res

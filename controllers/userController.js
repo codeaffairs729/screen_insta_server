@@ -610,7 +610,10 @@ module.exports.updateProfile = async (req, res, next) => {
         if (existingUser)
           return res
             .status(400)
-            .send({ error: "Please choose another username." });
+            .send({
+              error:
+                "This username is already taken, please choose another one.",
+            });
         userDocument.username = username;
         updatedFields.username = username;
       }
@@ -648,7 +651,10 @@ module.exports.updateProfile = async (req, res, next) => {
         if (existingUser)
           return res
             .status(400)
-            .send({ error: "Please choose another email." });
+            .send({
+              error:
+                "This email is already registered, please choose another one.",
+            });
         confirmationToken = new ConfirmationToken({
           user: user._id,
           token: crypto.randomBytes(20).toString("hex"),

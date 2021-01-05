@@ -26,7 +26,7 @@ const UserSchema = new Schema({
     required: true,
     lowercase: true,
     unique: true,
-    minlength: 6,
+    minlength: 3,
   },
   avatar: String,
   coverPicture: String,
