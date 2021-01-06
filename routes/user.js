@@ -17,7 +17,10 @@ const {
   updateProfile,
   retrieveSuggestedUsers,
 } = require("../controllers/userController");
-const { requireAuth } = require("../controllers/authController");
+const {
+  requireAuth,
+  requireAuthNoMailVerification,
+} = require("../controllers/authController");
 
 userRouter.get("/suggested/:max?", requireAuth, retrieveSuggestedUsers);
 userRouter.get("/:username", requireAuth, retrieveUser);
@@ -29,10 +32,10 @@ userRouter.get("/:username/:offset/search", searchUsers);
 userRouter.put("/confirm", requireAuth, confirmUser);
 userRouter.put(
   "/avatar",
-  requireAuth,
+  requireAuthNoMailVerification,
   multer({
     dest: "temp/",
-    limits: { fieldSize: 16 * 1024 * 1024, fileSize: 10000000 },
+    limits: { fileSize: 10000000 },
   }).single("image"),
   changeAvatar
 );
@@ -42,7 +45,7 @@ userRouter.put(
   requireAuth,
   multer({
     dest: "temp/",
-    limits: { fileSize: 24 * 1024 * 1021, fileSize: 10000000 },
+    limits: { fileSize: 12000000 },
   }).single("image"),
   changeCoverPicture
 );

@@ -49,7 +49,7 @@ module.exports.requireAuthNoMailVerification = async (req, res, next) => {
   const { authorization } = req.headers;
   if (!authorization) return res.status(401).send({ error: "Not authorized." });
   try {
-    const user = await admin.auth().verifyIdToken(token);
+    const user = await admin.auth().verifyIdToken(authorization);
     const connectedUser = await User.findOne({ uid: user.uid });
     res.locals.user = connectedUser;
     return next();

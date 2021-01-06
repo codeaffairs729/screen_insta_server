@@ -495,7 +495,6 @@ module.exports.confirmUser = async (req, res, next) => {
 
 module.exports.changeAvatar = async (req, res, next) => {
   const user = res.locals.user;
-
   if (!req.file) {
     return res
       .status(400)
@@ -528,6 +527,8 @@ module.exports.changeAvatar = async (req, res, next) => {
 
     return res.send({ avatar: response.secure_url });
   } catch (err) {
+    console.log("could not upload picture");
+    console.log(err);
     next(err);
   }
 };
@@ -608,12 +609,9 @@ module.exports.updateProfile = async (req, res, next) => {
       if (username !== user.username) {
         const existingUser = await User.findOne({ username });
         if (existingUser)
-          return res
-            .status(400)
-            .send({
-              error:
-                "This username is already taken, please choose another one.",
-            });
+          return res.status(400).send({
+            error: "This username is already taken, please choose another one.",
+          });
         userDocument.username = username;
         updatedFields.username = username;
       }
@@ -649,12 +647,10 @@ module.exports.updateProfile = async (req, res, next) => {
       if (email !== user.email) {
         const existingUser = await User.findOne({ email });
         if (existingUser)
-          return res
-            .status(400)
-            .send({
-              error:
-                "This email is already registered, please choose another one.",
-            });
+          return res.status(400).send({
+            error:
+              "This email is already registered, please choose another one.",
+          });
         confirmationToken = new ConfirmationToken({
           user: user._id,
           token: crypto.randomBytes(20).toString("hex"),
