@@ -740,3 +740,45 @@ module.exports.retrieveSuggestedUsers = async (req, res, next) => {
     next(err);
   }
 };
+
+module.exports.upgradeUserAccount = async (req, res, next) => {
+  const user = res.locals.user;
+  console.log("upgrading current user");
+  console.log(req.body);
+  const {
+    followPrice,
+    country,
+    referrerUserHandle,
+    bankInformation,
+    audioCallPrice,
+    videoCallPrice,
+    blockedCountries,
+  } = req.body;
+  try {
+    const userDocument = await User.findOne({ _id: user._id });
+    userDocument.isCreator = true;
+    userDocument.followPrice = followPrice;
+    if (country) {
+      userDocument.country = country;
+    }
+    if (referrerUserHandle) {
+      userDocument.referrer = referrerUserHandle;
+    }
+    if (bankInformation) {
+      userDocument.bankInformation = bankInformation;
+    }
+    if (audioCallPrice) {
+      userDocument.audioCallPrice = audioCallPrice;
+    }
+    if (videoCallPrice) {
+      userDocument.videoCallPrice = videoCallPrice;
+    }
+    if (blockedCountries) {
+      userDocument.blockedCountries = blockedCountries;
+    }
+    const updatedUser = await userDocument.save();
+    res.status(200).end();
+  } catch (err) {
+    next(err);
+  }
+};

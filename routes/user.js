@@ -16,6 +16,7 @@ const {
   removeAvatar,
   updateProfile,
   retrieveSuggestedUsers,
+  upgradeUserAccount,
 } = require("../controllers/userController");
 const {
   requireAuth,
@@ -35,7 +36,7 @@ userRouter.put(
   requireAuthNoMailVerification,
   multer({
     dest: "temp/",
-    limits: { fileSize: 10000000 },
+    limits: { fileSize: 12000000 },
   }).single("image"),
   changeAvatar
 );
@@ -56,5 +57,7 @@ userRouter.delete("/avatar", requireAuth, removeAvatar);
 
 userRouter.post("/:postId/bookmark", requireAuth, bookmarkPost);
 userRouter.post("/:userId/follow", requireAuth, followUser);
+
+userRouter.post("/upgrade", requireAuth, upgradeUserAccount);
 
 module.exports = userRouter;

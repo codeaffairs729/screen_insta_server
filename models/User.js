@@ -78,6 +78,30 @@ const UserSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  country: {
+    type: String,
+    default: null,
+  },
+  referrer: {
+    type: String,
+    default: null,
+  },
+  bankInformation: {
+    type: String,
+    default: null,
+  },
+  audioCallPrice: {
+    type: Number,
+    default: 0,
+  },
+  videoCallPrice: {
+    type: Number,
+    default: 0,
+  },
+  blockedCountries: {
+    type: Array,
+    default: [],
+  },
 });
 
 UserSchema.pre("save", function (next) {
