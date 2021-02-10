@@ -584,6 +584,23 @@ module.exports.removeAvatar = async (req, res, next) => {
   }
 };
 
+module.exports.removeCoverPicture = async (req, res, next) => {
+  const user = res.locals.user;
+
+  try {
+    const coverPictureUpdate = await User.updateOne(
+      { _id: user._id },
+      { $unset: { coverPicture: "" } }
+    );
+    if (!coverPictureUpdate.nModified) {
+      next(err);
+    }
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports.updateProfile = async (req, res, next) => {
   const user = res.locals.user;
   console.log("updating current user with values: ");
@@ -777,7 +794,7 @@ module.exports.upgradeUserAccount = async (req, res, next) => {
       userDocument.blockedCountries = blockedCountries;
     }
     const updatedUser = await userDocument.save();
-    res.status(200).end();
+    res.status(200).send(updatedUser);
   } catch (err) {
     next(err);
   }

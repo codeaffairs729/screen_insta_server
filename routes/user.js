@@ -14,6 +14,7 @@ const {
   changeAvatar,
   changeCoverPicture,
   removeAvatar,
+  removeCoverPicture,
   updateProfile,
   retrieveSuggestedUsers,
   upgradeUserAccount,
@@ -54,6 +55,7 @@ userRouter.put(
 userRouter.put("/", requireAuth, updateProfile);
 
 userRouter.delete("/avatar", requireAuth, removeAvatar);
+userRouter.delete("/coverPicture", requireAuth, removeCoverPicture);
 
 userRouter.post("/:postId/bookmark", requireAuth, bookmarkPost);
 userRouter.post("/:userId/follow", requireAuth, followUser);
