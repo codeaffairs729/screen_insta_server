@@ -774,7 +774,9 @@ module.exports.upgradeUserAccount = async (req, res, next) => {
   try {
     const userDocument = await User.findOne({ _id: user._id });
     userDocument.isCreator = true;
-    userDocument.followPrice = followPrice;
+    if (followPrice != null) {
+      userDocument.followPrice = followPrice;
+    }
     if (country) {
       userDocument.country = country;
     }
@@ -784,10 +786,10 @@ module.exports.upgradeUserAccount = async (req, res, next) => {
     if (bankInformation) {
       userDocument.bankInformation = bankInformation;
     }
-    if (audioCallPrice) {
+    if (audioCallPrice != null) {
       userDocument.audioCallPrice = audioCallPrice;
     }
-    if (videoCallPrice) {
+    if (videoCallPrice != null) {
       userDocument.videoCallPrice = videoCallPrice;
     }
     if (blockedCountries) {

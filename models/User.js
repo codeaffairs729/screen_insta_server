@@ -87,8 +87,15 @@ const UserSchema = new Schema({
     default: null,
   },
   bankInformation: {
-    type: String,
-    default: null,
+    type: Object,
+    default: {
+      fullName: "",
+      iban: "",
+      swift: "",
+      bankName: "",
+      country: "",
+      address: "",
+    },
   },
   audioCallPrice: {
     type: Number,
