@@ -4,7 +4,6 @@ const Followers = require("../models/Followers");
 const Following = require("../models/Following");
 const ConfirmationToken = require("../models/ConfirmationToken");
 const Notification = require("../models/Notification");
-const socketHandler = require("../handlers/socketHandler");
 const ObjectId = require("mongoose").Types.ObjectId;
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
@@ -287,17 +286,6 @@ module.exports.followUser = async (req, res, next) => {
     });
 
     await notification.save();
-    socketHandler.sendNotification(req, {
-      notificationType: "follow",
-      sender: {
-        _id: sender._id,
-        username: sender.username,
-        avatar: sender.avatar,
-      },
-      receiver: userId,
-      date: notification.date,
-      isFollowing: !!isFollowing,
-    });
 
     res.send({ success: true, operation: "follow" });
   } catch (err) {
@@ -635,18 +623,19 @@ module.exports.updateProfile = async (req, res, next) => {
     }
 
     if (website !== undefined) {
-      const websiteError = validateWebsite(website);
+      let websiteValue = website.toLowerCase();
+      const websiteError = validateWebsite(websiteValue);
       if (websiteError) return res.status(400).send({ error: websiteError });
       if (
-        !website.includes("http://") &&
-        !website.includes("https://") &&
-        website !== ""
+        !websiteValue.includes("http://") &&
+        !websiteValue.includes("https://") &&
+        websiteValue !== ""
       ) {
-        userDocument.website = "https://" + website;
-        updatedFields.website = "https://" + website;
+        userDocument.website = "https://" + websiteValue;
+        updatedFields.website = "https://" + websiteValue;
       } else {
-        userDocument.website = website;
-        updatedFields.website = website;
+        userDocument.website = websiteValue;
+        updatedFields.website = websiteValue;
       }
     }
 

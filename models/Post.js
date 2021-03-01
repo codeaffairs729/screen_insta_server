@@ -2,7 +2,34 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const PostSchema = new Schema({
-  image: String,
+  images: {
+    type: Array,
+    required: false,
+  },
+  video: {
+    type: String,
+    required: false,
+  },
+  audio: {
+    type: String,
+    required: false,
+  },
+  survey: {
+    type: String,
+    required: false,
+  },
+  postType: {
+    type: String,
+    required: true,
+  },
+  postText:  {
+    type: String,
+    required: false,
+  },
+  postPrice: {
+    type: Number,
+    required: false,
+  },
   filter: String,
   thumbnail: String,
   caption: String,
@@ -18,7 +45,7 @@ const PostSchema = new Schema({
   },
   author: {
     type: Schema.ObjectId,
-    ref: 'User',
+    ref: "User",
   },
 });
 

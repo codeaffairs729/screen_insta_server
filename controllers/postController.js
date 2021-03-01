@@ -9,6 +9,7 @@ const Notification = require('../models/Notification');
 const socketHandler = require('../handlers/socketHandler');
 const fs = require('fs');
 const ObjectId = require('mongoose').Types.ObjectId;
+const constants = require("./../constants");
 
 const {
   retrieveComments,
@@ -36,9 +37,9 @@ module.exports.createPost = async (req, res, next) => {
   }
 
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: constants.CLOUDINARY_CLOUD_NAME,
+    api_key: constants.CLOUDINARY_API_KEY,
+    api_secret: constants.CLOUDINARY_API_SECRET,
   });
 
   try {
@@ -73,30 +74,6 @@ module.exports.createPost = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
-  }
-
-  try {
-    // Updating followers feed with post
-    const followersDocument = await Followers.find({ user: user._id });
-    const followers = followersDocument[0].followers;
-    const postObject = {
-      ...post.toObject(),
-      author: { username: user.username, avatar: user.avatar },
-      commentData: { commentCount: 0, comments: [] },
-      postVotes: [],
-    };
-
-    // socketHandler.sendPost(req, postObject, user._id);
-    followers.forEach((follower) => {
-      socketHandler.sendPost(
-        req,
-        // Since the post is new there is no need to look up any fields
-        postObject,
-        follower.user
-      );
-    });
-  } catch (err) {
-    console.log(err);
   }
 };
 
