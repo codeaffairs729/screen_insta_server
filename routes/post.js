@@ -2,9 +2,9 @@ const express = require('express');
 const postRouter = express.Router();
 const multer = require('multer');
 const upload = multer({
-  dest: 'temp/',
+  dest: "temp/",
   limits: { fileSize: 10 * 1024 * 1024 },
-}).single('image');
+}).array("medias", 10);
 const rateLimit = require('express-rate-limit');
 
 const { requireAuth } = require('../controllers/authController');

@@ -2,36 +2,25 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const PostSchema = new Schema({
-  images: {
+  medias: {
     type: Array,
-    required: false,
-  },
-  video: {
-    type: String,
-    required: false,
-  },
-  audio: {
-    type: String,
     required: false,
   },
   survey: {
     type: String,
     required: false,
   },
-  postType: {
-    type: String,
-    required: true,
-  },
   postText:  {
     type: String,
     required: false,
+    default: ""
   },
   postPrice: {
     type: Number,
     required: false,
+    default: 0,
   },
   filter: String,
-  thumbnail: String,
   caption: String,
   hashtags: [
     {

@@ -22,11 +22,9 @@ module.exports.retrieveUser = async (req, res, next) => {
   const { username } = req.params;
   const requestingUser = res.locals.user;
   try {
-    console.log("finding user " + username);
-
     const user = await User.findOne(
       { username },
-      "username fullName avatar bio bookmarks fullName _id website coverPicture"
+      "username fullName avatar bio bookmarks fullName _id website coverPicture isCreator followPrice"
     );
     if (!user) {
       return res
@@ -34,6 +32,7 @@ module.exports.retrieveUser = async (req, res, next) => {
         .send({ error: "Could not find a user with that username." });
     }
 
+    //TODO check if requesting user is following this username, if not return empty page
     const posts = await Post.aggregate([
       {
         $facet: {
@@ -79,9 +78,7 @@ module.exports.retrieveUser = async (req, res, next) => {
                 comments: {
                   $sum: [{ $size: "$comments" }, { $size: "$commentReplies" }],
                 },
-                image: true,
-                thumbnail: true,
-                filter: true,
+                medias: true,
                 caption: true,
                 author: true,
                 postVotes: { $size: "$postvotes.votes" },

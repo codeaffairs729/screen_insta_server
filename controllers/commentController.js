@@ -51,8 +51,8 @@ module.exports.createComment = async (req, res, next) => {
   try {
     // Sending comment notification
     let image = formatCloudinaryUrl(
-      post.image,
-      { height: 50, width: 50, x: '100%', y: '100%' },
+      post.medias[0],
+      { height: 50, width: 50, x: "100%", y: "100%" },
       true
     );
     sendCommentNotification(
@@ -190,12 +190,12 @@ module.exports.createCommentReply = async (req, res, next) => {
       parentCommentDocument.post
     ).populate('author');
     const image = formatCloudinaryUrl(
-      postDocument.image,
+      postDocument.medias[0],
       {
         height: 50,
         width: 50,
-        x: '100%',
-        y: '100%',
+        x: "100%",
+        y: "100%",
       },
       true
     );
