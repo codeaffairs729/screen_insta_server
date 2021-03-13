@@ -10,6 +10,8 @@ const socketHandler = require("../handlers/socketHandler");
 const fs = require("fs");
 const ObjectId = require("mongoose").Types.ObjectId;
 const constants = require("./../constants");
+const paymentService = require("./../services/paymentService");
+const Payment = require("../models/Payment");
 
 const {
   retrieveComments,
@@ -17,6 +19,24 @@ const {
   populatePostsPipeline,
 } = require("../utils/controllerUtils");
 const filters = require("../utils/filters");
+
+module.exports.payPost = async (req, res, next) => {
+  const user = res.locals.user;
+  const { postId } = req.body;
+  try {
+    let post = await Post.findOne({ _id: postId });
+    if (post && post.postPrice) {
+      const result = paymentService.payPost(post._id, user._id);
+      if (result) {
+        return res.status(200).send(post.medias);
+      } else {
+        return res.status(500).end();
+      }
+    }
+  } catch (err) {
+    next(err);
+  }
+};
 
 module.exports.createPost = async (req, res, next) => {
   const user = res.locals.user;
@@ -47,9 +67,9 @@ module.exports.createPost = async (req, res, next) => {
     let mediaUrls = [];
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
-      let options = {}
-      if (file.mimetype == 'video/mp4') {
-        options = {resource_type : "video"};
+      let options = {};
+      if (file.mimetype == "video/mp4") {
+        options = { resource_type: "video" };
       }
       const response = await cloudinary.uploader.upload(file.path, options);
       const thumbnailUrl = formatCloudinaryUrl(
@@ -64,7 +84,6 @@ module.exports.createPost = async (req, res, next) => {
       fs.unlinkSync(file.path);
     }
 
-    
     post = new Post({
       medias: mediaUrls,
       caption,
@@ -114,19 +133,18 @@ module.exports.deletePost = async (req, res, next) => {
   try {
     const followersDocument = await Followers.find({ user: user._id });
     const followers = followersDocument[0].followers;
-    socketHandler.deletePost(req, postId, user._id);
-    followers.forEach((follower) =>
-      socketHandler.deletePost(req, postId, follower.user)
-    );
   } catch (err) {
     console.log(err);
   }
 };
 
 module.exports.retrievePost = async (req, res, next) => {
+  const user = res.locals.user;
   const { postId } = req.params;
+  const requestingUser = res.locals.user;
   try {
     // Retrieve the post and the post's votes
+
     const post = await Post.aggregate([
       { $match: { _id: ObjectId(postId) } },
       {
@@ -148,13 +166,7 @@ module.exports.retrievePost = async (req, res, next) => {
       { $unwind: "$author" },
       { $unwind: "$postVotes" },
       {
-        $unset: [
-          "author.password",
-          "author.email",
-          "author.private",
-          "author.bio",
-          "author.githubId",
-        ],
+        $unset: ["author.password", "author.email", "author.bio"],
       },
       {
         $addFields: { postVotes: "$postVotes.votes" },
@@ -165,10 +177,40 @@ module.exports.retrievePost = async (req, res, next) => {
         .status(404)
         .send({ error: "Could not find a post with that id." });
     }
+    let toReturnPost = null;
+
+    if (post[0].author._id.toString() === user._id.toString()) {
+      toReturnPost = { ...post[0] };
+    } else {
+      const toCheckPost = post[0];
+      if (toCheckPost.author._id.toString() === requestingUser._id.toString()) {
+        toCheckPost.display = true;
+      } else {
+        if (toCheckPost.postPrice > 0) {
+          //fetch payments for post from this user;
+          const payments = await Payment.find({
+            user: requestingUser._id,
+            post: toCheckPost._id,
+          });
+          if (payments.length > 0) {
+            toCheckPost.display = true;
+          } else {
+            delete toCheckPost.medias;
+            toCheckPost.display = false;
+          }
+        } else if (toCheckPost.postPrice == 0) {
+          toCheckPost.display = true;
+        } else {
+          console.log("Could not determine if we should display post or not");
+        }
+      }
+      toReturnPost = toCheckPost; 
+    }
+
     // Retrieve the comments associated with the post aswell as the comment's replies and votes
     const comments = await retrieveComments(postId, 0);
 
-    return res.send({ ...post[0], commentData: comments });
+    return res.send({ ...toReturnPost, commentData: comments });
   } catch (err) {
     next(err);
   }
@@ -226,14 +268,6 @@ module.exports.votePost = async (req, res, next) => {
         });
 
         await notification.save();
-        socketHandler.sendNotification(req, {
-          ...notification.toObject(),
-          sender: {
-            _id: user._id,
-            username: user.username,
-            avatar: user.avatar,
-          },
-        });
       }
     }
     return res.send({ success: true });
@@ -391,10 +425,41 @@ module.exports.retrievePostFeed = async (req, res, next) => {
         },
       },
       {
-        $unset: [...unwantedUserFields, "comments", "commentCount"],
+        $unset: [...unwantedUserFields, "comments", "commentCount", "payments"],
       },
     ]);
-    return res.send(posts);
+    //check if post is paid
+    let toReturnPosts = [];
+    if (posts && posts.length > 0) {
+      for (let i = 0; i < posts.length; i++) {
+        const post = posts[i];
+        if (post.author._id.toString() === user._id.toString()) {
+          post.display = true;
+          toReturnPosts.push(post);
+        } else {
+          if (post.postPrice > 0) {
+            //fetch payments for post from this user;
+            const payments = await Payment.find({
+              user: user._id,
+              post: post._id,
+            });
+            if (payments.length > 0) {
+              post.display = true;
+            } else {
+              delete post.medias;
+              post.display = false;
+            }
+            toReturnPosts.push(post);
+          } else if (post.postPrice == 0) {
+            post.display = true;
+            toReturnPosts.push(post);
+          } else {
+            console.log("Could not determine if we should display post or not");
+          }
+        }
+      }
+    }
+    return res.send(toReturnPosts);
   } catch (err) {
     next(err);
   }

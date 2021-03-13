@@ -16,7 +16,8 @@ const {
   retrievePostFeed,
   retrieveSuggestedPosts,
   retrieveHashtagPosts,
-} = require('../controllers/postController');
+  payPost,
+} = require("../controllers/postController");
 const filters = require('../utils/filters');
 
 const postLimiter = rateLimit({
@@ -26,12 +27,12 @@ const postLimiter = rateLimit({
 
 postRouter.post('/', postLimiter, requireAuth, upload, createPost);
 postRouter.post('/:postId/vote', requireAuth, votePost);
-
+postRouter.post("/pay", requireAuth, payPost);
 postRouter.get('/suggested/:offset', requireAuth, retrieveSuggestedPosts);
 postRouter.get('/filters', (req, res) => {
   res.send({ filters });
 });
-postRouter.get('/:postId', retrievePost);
+postRouter.get("/:postId", requireAuth, retrievePost);
 postRouter.get('/feed/:offset', requireAuth, retrievePostFeed);
 postRouter.get('/hashtag/:hashtag/:offset', requireAuth, retrieveHashtagPosts);
 

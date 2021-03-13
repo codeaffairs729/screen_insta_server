@@ -9,6 +9,7 @@ const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const crypto = require("crypto");
 const constants = require("./../constants");
+const paymentService = require("./../services/paymentService");
 
 const {
   validateEmail,
@@ -17,6 +18,8 @@ const {
   validateBio,
   validateWebsite,
 } = require("../utils/validation");
+const { post } = require("../routes/post");
+const Payment = require("../models/Payment");
 
 module.exports.retrieveUser = async (req, res, next) => {
   const { username } = req.params;
@@ -24,7 +27,7 @@ module.exports.retrieveUser = async (req, res, next) => {
   try {
     const user = await User.findOne(
       { username },
-      "username fullName avatar bio bookmarks fullName _id website coverPicture isCreator followPrice"
+      "username fullName uid avatar bio bookmarks fullName _id website coverPicture isCreator followPrice"
     );
     if (!user) {
       return res
@@ -80,6 +83,7 @@ module.exports.retrieveUser = async (req, res, next) => {
                 },
                 medias: true,
                 caption: true,
+                postPrice: true,
                 author: true,
                 postVotes: { $size: "$postvotes.votes" },
               },
@@ -104,10 +108,55 @@ module.exports.retrieveUser = async (req, res, next) => {
       user: ObjectId(user._id),
     });
 
+
+    let isFollowing = false;
+    for (let i = 0; i < followersDocument.followers.length; i++) {
+      let follower = followersDocument.followers[i];
+      if (follower.user._id.toString() == requestingUser._id.toString()) {
+        isFollowing = true;
+      }
+    }
+    if (!isFollowing && user._id.toString() != requestingUser._id.toString()) {
+      //the user is not following
+      posts[0].data = [];
+    }
+
+
     const followingDocument = await Following.findOne({
       user: ObjectId(user._id),
     });
 
+    let toReturnPosts = [];
+    if (posts[0] && posts[0].data.length > 0) {
+      for (let i = 0; i < posts[0].data.length; i++) {
+        const post = posts[0].data[i];
+        if (post.author._id.toString() === requestingUser._id.toString()) {
+          post.display = true;
+          toReturnPosts.push(post);
+        } else {
+          if (post.postPrice && post.postPrice > 0) {
+            //fetch payments for post from this user;
+            const payments = await Payment.find({
+              user: requestingUser._id,
+              post: post._id,
+            });
+            if (payments.length > 0) {
+              post.display = true;
+            } else {
+              delete post.medias;
+              post.display = false;
+            }
+            toReturnPosts.push(post);
+          } else if (post.postPrice == 0) {
+            post.display = true;
+            toReturnPosts.push(post);
+          } else {
+            console.log("Could not determine if we should display post or not");
+          }
+        }
+      }
+      posts[0].data = toReturnPosts;
+    }
     return res.send({
       user,
       followers: followersDocument.followers.length,
@@ -241,6 +290,18 @@ module.exports.followUser = async (req, res, next) => {
       { user: user._id, "following.user": { $ne: userId } },
       { $push: { following: { user: userId } } }
     );
+
+    if (userToFollow.followPrice > 0) {
+      const paid = await paymentService.paySubscription(
+        user._id,
+        userToFollow._id
+      );
+      if (!paid) {
+        return res
+          .status(500)
+          .send({ error: "An error occurred with the subscription payment" });
+      }
+    }
 
     if (!followerUpdate.nModified || !followingUpdate.nModified) {
       if (!followerUpdate.ok || !followingUpdate.ok) {
@@ -720,6 +781,7 @@ module.exports.retrieveSuggestedUsers = async (req, res, next) => {
           username: true,
           fullName: true,
           email: true,
+          followPrice: true,
           avatar: true,
           isFollowing: { $in: [user._id, "$followers.followers.user"] },
           posts: true,

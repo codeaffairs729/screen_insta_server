@@ -150,14 +150,6 @@ module.exports.sendCommentNotification = async (
         },
       });
       await notification.save();
-      socketHandler.sendNotification(req, {
-        ...notification.toObject(),
-        sender: {
-          _id: sender._id,
-          username: sender.username,
-          avatar: sender.avatar,
-        },
-      });
     }
   } catch (err) {
     throw new Error(err.message);
@@ -205,14 +197,6 @@ module.exports.sendMentionNotification = (req, message, image, post, user) => {
           },
         });
         await notification.save();
-        socketHandler.sendNotification(req, {
-          ...notification.toObject(),
-          sender: {
-            _id: user._id,
-            username: user.username,
-            author: user.author,
-          },
-        });
       }
     }
   });
