@@ -118,7 +118,7 @@ module.exports.retrieveUser = async (req, res, next) => {
     }
     if (!isFollowing && user._id.toString() != requestingUser._id.toString()) {
       //the user is not following
-      posts[0].data = [];
+      if (posts[0] && posts[0].data) posts[0].data = [];
     }
 
 
