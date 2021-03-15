@@ -485,6 +485,10 @@ module.exports.retrieveSuggestedPosts = async (req, res, next) => {
       },
       ...populatePostsPipeline,
     ]);
+    for (let index = 0; index < posts.length; index++) {
+      const element = posts[index];
+      element.display = false;
+    }
     return res.send(posts);
   } catch (err) {
     next(err);
