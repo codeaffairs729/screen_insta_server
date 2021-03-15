@@ -59,3 +59,16 @@ module.exports.validateWebsite = (website) => {
   }
   return false;
 };
+
+module.exports.allowedVideos = [
+  "video/mp4",
+  "video/MP2T",
+  "video/ogg",
+  "video/3gpp",
+  "video/webm",
+  "video/quicktime",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/webm",
+  "audio/ogg",
+];

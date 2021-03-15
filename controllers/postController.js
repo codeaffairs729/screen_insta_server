@@ -12,6 +12,7 @@ const ObjectId = require("mongoose").Types.ObjectId;
 const constants = require("./../constants");
 const paymentService = require("./../services/paymentService");
 const Payment = require("../models/Payment");
+const validation = require("../utils/validation");
 
 const {
   retrieveComments,
@@ -68,7 +69,7 @@ module.exports.createPost = async (req, res, next) => {
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
       let options = {};
-      if (file.mimetype == "video/mp4") {
+      if (validation.allowedVideos.indexOf(file.mimetype) !== -1) {
         options = { resource_type: "video" };
       }
       const response = await cloudinary.uploader.upload(file.path, options);
