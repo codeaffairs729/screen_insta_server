@@ -17,6 +17,7 @@ const {
   retrieveSuggestedPosts,
   retrieveHashtagPosts,
   payPost,
+  reportPost,
 } = require("../controllers/postController");
 const filters = require('../utils/filters');
 
@@ -37,5 +38,6 @@ postRouter.get('/feed/:offset', requireAuth, retrievePostFeed);
 postRouter.get('/hashtag/:hashtag/:offset', requireAuth, retrieveHashtagPosts);
 
 postRouter.delete('/:postId', requireAuth, deletePost);
+postRouter.get("/report/:postId", requireAuth, reportPost);
 
 module.exports = postRouter;

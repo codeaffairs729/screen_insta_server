@@ -37,8 +37,14 @@ if (process.env.NODE_ENV === "production") {
 }
 
 (async function () {
+  let mongo_uri = constants.MONGO_DEV_URI;
+  if (process.env.NODE_ENV == "production") {
+    mongo_uri = constants.MONGO_URI;
+  } else {
+    console.log("Connecting to dev mong URI");
+  }
   try {
-    await mongoose.connect(constants.MONGO_URI, {
+    await mongoose.connect(mongo_uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       useCreateIndex: true,

@@ -7,6 +7,7 @@ const Following = require("../models/Following");
 const Followers = require("../models/Followers");
 const Notification = require("../models/Notification");
 const socketHandler = require("../handlers/socketHandler");
+const PostReport = require("../models/PostReports");
 const fs = require("fs");
 const ObjectId = require("mongoose").Types.ObjectId;
 const constants = require("./../constants");
@@ -41,7 +42,13 @@ module.exports.payPost = async (req, res, next) => {
 
 module.exports.createPost = async (req, res, next) => {
   const user = res.locals.user;
-  const { caption, filter: filterName, postPrice } = req.body;
+  let { caption, filter: filterName, postPrice } = req.body;
+  if (!caption) {
+    caption = "";
+  }
+  if (!postPrice) {
+    postPrice = 0;
+  }
   let post = undefined;
   const filterObject = filters.find((filter) => filter.name === filterName);
   const hashtags = [];
@@ -538,6 +545,23 @@ module.exports.retrieveHashtagPosts = async (req, res, next) => {
     ]);
 
     return res.send(posts[0]);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.reportPost = async (req, res, next) => {
+  const { postId } = req.params;
+  const user = res.locals.user;
+
+  try {
+    let postReport = new PostReport({
+      user: user._id,
+      post: postId,
+    });
+    postReport = await postReport.save();
+    if (postReport) return res.send({ success: true });
+    else return res.send({ success: false });
   } catch (err) {
     next(err);
   }
