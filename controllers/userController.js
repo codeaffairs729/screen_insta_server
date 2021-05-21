@@ -647,6 +647,196 @@ module.exports.removeCoverPicture = async (req, res, next) => {
   }
 };
 
+module.exports.getUserBookmarks = async (req, res, next) => {
+  const user = res.locals.user;
+  if (!user.bookmarks || user.bookmarks.length == 0) {
+    return res.send([]);
+  }
+  const { offset } = req.params;
+
+  try {
+    const followingDocument = await Following.findOne({ user: user._id });
+    if (!followingDocument) {
+      return res.status(404).send({ error: "Could not find any posts." });
+    }
+    const bookmarkedPosts = user.bookmarks.map((bookmark) => bookmark.post);
+    console.log(bookmarkedPosts);
+
+    // Fields to not include on the user object
+    const unwantedUserFields = [
+      "author.password",
+      "author.private",
+      "author.confirmed",
+      "author.bookmarks",
+      "author.email",
+      "author.website",
+      "author.bio",
+    ];
+
+    const posts = await Post.aggregate([
+      {
+        $match: {
+          $or: [{ _id: { $in: bookmarkedPosts } }],
+        },
+      },
+      { $sort: { date: -1 } },
+      { $skip: Number(offset) },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "author",
+          foreignField: "_id",
+          as: "author",
+        },
+      },
+      {
+        $lookup: {
+          from: "postvotes",
+          localField: "_id",
+          foreignField: "post",
+          as: "postVotes",
+        },
+      },
+      {
+        $lookup: {
+          from: "comments",
+          let: { postId: "$_id" },
+          pipeline: [
+            {
+              // Finding comments related to the postId
+              $match: {
+                $expr: {
+                  $eq: ["$post", "$$postId"],
+                },
+              },
+            },
+            { $sort: { date: -1 } },
+            { $limit: 3 },
+            // Populating the author field
+            {
+              $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "author",
+              },
+            },
+            {
+              $lookup: {
+                from: "commentvotes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "commentVotes",
+              },
+            },
+            {
+              $unwind: "$author",
+            },
+            {
+              $unwind: {
+                path: "$commentVotes",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $unset: unwantedUserFields,
+            },
+            {
+              $addFields: {
+                commentVotes: "$commentVotes.votes",
+              },
+            },
+          ],
+          as: "comments",
+        },
+      },
+      {
+        $lookup: {
+          from: "comments",
+          let: { postId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$post", "$$postId"],
+                },
+              },
+            },
+            {
+              $group: { _id: null, count: { $sum: 1 } },
+            },
+            {
+              $project: {
+                _id: false,
+              },
+            },
+          ],
+          as: "commentCount",
+        },
+      },
+      {
+        $unwind: {
+          path: "$commentCount",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: "$postVotes",
+      },
+      {
+        $unwind: "$author",
+      },
+      {
+        $addFields: {
+          postVotes: "$postVotes.votes",
+          commentData: {
+            comments: "$comments",
+            commentCount: "$commentCount.count",
+          },
+        },
+      },
+      {
+        $unset: [...unwantedUserFields, "comments", "commentCount", "payments"],
+      },
+    ]);
+    //check if post is paid
+    let toReturnPosts = [];
+    if (posts && posts.length > 0) {
+      for (let i = 0; i < posts.length; i++) {
+        const post = posts[i];
+        if (post.author._id.toString() === user._id.toString()) {
+          post.display = true;
+          toReturnPosts.push(post);
+        } else {
+          if (post.postPrice > 0) {
+            //fetch payments for post from this user;
+            const payments = await Payment.find({
+              user: user._id,
+              post: post._id,
+            });
+            if (payments.length > 0) {
+              post.display = true;
+            } else {
+              delete post.medias;
+              post.display = false;
+            }
+            toReturnPosts.push(post);
+          } else if (post.postPrice == 0) {
+            post.display = true;
+            toReturnPosts.push(post);
+          } else {
+            console.log("Could not determine if we should display post or not");
+          }
+        }
+      }
+    }
+    return res.send(toReturnPosts);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports.updateProfile = async (req, res, next) => {
   const user = res.locals.user;
   console.log("updating current user with values: ");

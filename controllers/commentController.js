@@ -68,8 +68,8 @@ module.exports.createComment = async (req, res, next) => {
     // Find the username of the post author
     const postDocument = await Post.findById(post._id).populate('author');
     image = formatCloudinaryUrl(
-      post.image,
-      { height: 50, width: 50, x: '100%', y: '100%' },
+      post.medias[0],
+      { height: 50, width: 50, x: "100%", y: "100%" },
       true
     );
 

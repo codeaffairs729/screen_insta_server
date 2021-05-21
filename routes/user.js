@@ -18,12 +18,14 @@ const {
   updateProfile,
   retrieveSuggestedUsers,
   upgradeUserAccount,
+  getUserBookmarks,
 } = require("../controllers/userController");
 const {
   requireAuth,
   requireAuthNoMailVerification,
 } = require("../controllers/authController");
 
+userRouter.get("/bookmarks", requireAuth, getUserBookmarks);
 userRouter.get("/suggested/:max?", requireAuth, retrieveSuggestedUsers);
 userRouter.get("/:username", requireAuth, retrieveUser);
 userRouter.get("/:username/posts/:offset", retrievePosts);
