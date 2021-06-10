@@ -19,6 +19,7 @@ const {
   retrieveSuggestedUsers,
   upgradeUserAccount,
   getUserBookmarks,
+  sendTipToUser,
 } = require("../controllers/userController");
 const {
   requireAuth,
@@ -32,6 +33,7 @@ userRouter.get("/:username/posts/:offset", retrievePosts);
 userRouter.get("/:userId/:offset/following", requireAuth, retrieveFollowing);
 userRouter.get("/:userId/:offset/followers", requireAuth, retrieveFollowers);
 userRouter.get("/:username/:offset/search", searchUsers);
+userRouter.post("/sendTip", requireAuth, sendTipToUser);
 
 userRouter.put("/confirm", requireAuth, confirmUser);
 userRouter.put(

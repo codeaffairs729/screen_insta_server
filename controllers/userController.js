@@ -555,8 +555,6 @@ module.exports.changeAvatar = async (req, res, next) => {
 
   try {
     const response = await cloudinary.uploader.upload(req.file.path, {
-      width: 200,
-      height: 200,
       gravity: "face",
       crop: "thumb",
     });
@@ -1035,6 +1033,21 @@ module.exports.upgradeUserAccount = async (req, res, next) => {
     }
     const updatedUser = await userDocument.save();
     res.status(200).send(updatedUser);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.sendTipToUser = async (req, res, next) => {
+  const user = res.locals.user;
+  console.log("sending tip to user");
+  console.log(req.body);
+  const { tipAmount, userId } = req.body;
+  try {
+    const userDocument = await User.findOne({ _id: user._id });
+    const destinationUser = await User.findOne({ _id: userId });
+
+    res.status(200).send({});
   } catch (err) {
     next(err);
   }
