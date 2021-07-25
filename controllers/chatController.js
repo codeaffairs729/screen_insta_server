@@ -45,3 +45,10 @@ module.exports.postSendMessage = async (req, res, next) => {
     next(err);
   }
 };
+module.exports.addMessageToConversation = async (req, res, next) => {
+  //const requestingUser = req.locals.user;
+  const message = req.body;
+
+  console.log("received message" + JSON.stringify(message));
+  return res.status(200).end();
+};
