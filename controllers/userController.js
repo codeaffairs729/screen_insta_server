@@ -10,7 +10,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const constants = require("./../constants");
 const paymentService = require("./../services/paymentService");
-
+const { retrieveRelatedUsers } = require("../utils/controllerUtils");
 const {
   validateEmail,
   validateFullName,
@@ -349,89 +349,6 @@ module.exports.followUser = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-/**
- * Retrieves either who a specific user follows or who is following the user.
- * Also retrieves whether the requesting user is following the returned users
- * @function retrieveRelatedUsers
- * @param {object} user The user object passed on from other middlewares
- * @param {string} userId Id of the user to be used in the query
- * @param {number} offset The offset for how many documents to skip
- * @param {boolean} followers Whether to query who is following the user or who the user follows default is the latter
- * @returns {array} Array of users
- */
-const retrieveRelatedUsers = async (user, userId, offset, followers) => {
-  const pipeline = [
-    {
-      $match: { user: ObjectId(userId) },
-    },
-    {
-      $lookup: {
-        from: "users",
-        let: followers
-          ? { userId: "$followers.user" }
-          : { userId: "$following.user" },
-        pipeline: [
-          {
-            $match: {
-              // Using the $in operator instead of the $eq
-              // operator because we can't coerce the types
-              $expr: { $in: ["$_id", "$$userId"] },
-            },
-          },
-          {
-            $skip: Number(offset),
-          },
-          {
-            $limit: 10,
-          },
-        ],
-        as: "users",
-      },
-    },
-    {
-      $lookup: {
-        from: "followers",
-        localField: "users._id",
-        foreignField: "user",
-        as: "userFollowers",
-      },
-    },
-    {
-      $project: {
-        "users._id": true,
-        "users.username": true,
-        "users.avatar": true,
-        "users.fullName": true,
-        userFollowers: true,
-      },
-    },
-  ];
-
-  const aggregation = followers
-    ? await Followers.aggregate(pipeline)
-    : await Following.aggregate(pipeline);
-
-  // Make a set to store the IDs of the followed users
-  const followedUsers = new Set();
-  // Loop through every follower and add the id to the set if the user's id is in the array
-  aggregation[0].userFollowers.forEach((followingUser) => {
-    if (
-      !!followingUser.followers.find(
-        (follower) => String(follower.user) === String(user._id)
-      )
-    ) {
-      followedUsers.add(String(followingUser.user));
-    }
-  });
-  // Add the isFollowing key to the following object with a value
-  // depending on the outcome of the loop above
-  aggregation[0].users.forEach((followingUser) => {
-    followingUser.isFollowing = followedUsers.has(String(followingUser._id));
-  });
-
-  return aggregation[0].users;
 };
 
 module.exports.retrieveFollowing = async (req, res, next) => {

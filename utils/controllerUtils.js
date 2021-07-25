@@ -7,6 +7,8 @@ const handlebars = require("handlebars");
 const linkify = require("linkifyjs");
 require("linkifyjs/plugins/mention")(linkify);
 const fs = require("fs");
+const Followers = require("../models/Followers");
+const Following = require("../models/Following");
 
 const socketHandler = require("../handlers/socketHandler");
 
@@ -107,13 +109,12 @@ module.exports.retrieveComments = async (postId, offset, exclude = 0) => {
  * @return {string} Formatted url
  */
 module.exports.formatCloudinaryUrl = (url, size, thumb) => {
-  
+
   if (!url)
     return null;
   const splitUrl = url.split("upload/");
-  splitUrl[0] += `upload/${
-    size.y && size.z ? `x_${size.x},y_${size.y},` : ""
-  }w_${size.width},h_${size.height}${thumb && ",c_thumb"}/`;
+  splitUrl[0] += `upload/${size.y && size.z ? `x_${size.x},y_${size.y},` : ""
+    }w_${size.width},h_${size.height}${thumb && ",c_thumb"}/`;
   const formattedUrl = splitUrl[0] + splitUrl[1];
   //remove thumbnail image by returning the original image
   return url;
@@ -288,3 +289,86 @@ module.exports.populatePostsPipeline = [
     ],
   },
 ];
+
+/**
+* Retrieves either who a specific user follows or who is following the user.
+* Also retrieves whether the requesting user is following the returned users
+* @function retrieveRelatedUsers
+* @param {object} user The user object passed on from other middlewares
+* @param {string} userId Id of the user to be used in the query
+* @param {number} offset The offset for how many documents to skip
+* @param {boolean} followers Whether to query who is following the user or who the user follows default is the latter
+* @returns {array} Array of users
+*/
+module.exports.retrieveRelatedUsers = async (user, userId, offset, followers = true) => {
+  const pipeline = [
+    {
+      $match: { user: ObjectId(userId) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        let: followers
+          ? { userId: "$followers.user" }
+          : { userId: "$following.user" },
+        pipeline: [
+          {
+            $match: {
+              // Using the $in operator instead of the $eq
+              // operator because we can't coerce the types
+              $expr: { $in: ["$_id", "$$userId"] },
+            },
+          },
+          {
+            $skip: Number(offset),
+          },
+          {
+            $limit: 10,
+          },
+        ],
+        as: "users",
+      },
+    },
+    {
+      $lookup: {
+        from: "followers",
+        localField: "users._id",
+        foreignField: "user",
+        as: "userFollowers",
+      },
+    },
+    {
+      $project: {
+        "users._id": true,
+        "users.username": true,
+        "users.avatar": true,
+        "users.fullName": true,
+        userFollowers: true,
+      },
+    },
+  ];
+
+  const aggregation = followers
+    ? await Followers.aggregate(pipeline)
+    : await Following.aggregate(pipeline);
+
+  // Make a set to store the IDs of the followed users
+  const followedUsers = new Set();
+  // Loop through every follower and add the id to the set if the user's id is in the array
+  aggregation[0].userFollowers.forEach((followingUser) => {
+    if (
+      !!followingUser.followers.find(
+        (follower) => String(follower.user) === String(user._id)
+      )
+    ) {
+      followedUsers.add(String(followingUser.user));
+    }
+  });
+  // Add the isFollowing key to the following object with a value
+  // depending on the outcome of the loop above
+  aggregation[0].users.forEach((followingUser) => {
+    followingUser.isFollowing = followedUsers.has(String(followingUser._id));
+  });
+
+  return aggregation[0].users;
+};
